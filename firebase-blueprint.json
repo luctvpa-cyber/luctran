@@ -1,0 +1,212 @@
+{
+  "entities": {
+    "BranchWorkspace": {
+      "title": "BranchWorkspace",
+      "description": "Root workspace metadata for a maintenance branch.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Display name of the branch workspace"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase UID of the branch owner"
+        },
+        "allowedEmails": {
+          "type": "array",
+          "description": "Authorized user emails (max 20)"
+        },
+        "seeded": {
+          "type": "boolean",
+          "description": "Whether initial maintenance data has been seeded"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last-updated timestamp"
+        }
+      },
+      "required": ["name", "ownerId", "allowedEmails", "seeded", "createdAt", "updatedAt"]
+    },
+    "TankRecord": {
+      "title": "TankRecord",
+      "description": "Fuel storage tank inspection and cleaning record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "allowedEmails": { "type": "array" },
+        "stt": { "type": "string", "maxLength": 32 },
+        "position": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "lastInspect": { "type": "string", "maxLength": 64 },
+        "lastClean": { "type": "string", "maxLength": 64 },
+        "inspectCycle": { "type": "string", "maxLength": 64 },
+        "cleanCycle": { "type": "string", "maxLength": 64 },
+        "nextInspect": { "type": "string", "maxLength": 64 },
+        "nextClean": { "type": "string", "maxLength": 64 },
+        "note": { "type": "string", "maxLength": 1000 },
+        "manualStatus": { "type": "string", "enum": ["", "overdue", "soon", "safe", "unknown"] },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "allowedEmails", "position", "createdAt", "updatedAt"]
+    },
+    "FilterRecord": {
+      "title": "FilterRecord",
+      "description": "Fuel filter vessel inspection and replacement record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "allowedEmails": { "type": "array" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "model": { "type": "string", "maxLength": 120 },
+        "lastInspect": { "type": "string", "maxLength": 64 },
+        "nextInspect": { "type": "string", "maxLength": 64 },
+        "lastReplace": { "type": "string", "maxLength": 64 },
+        "nextReplace": { "type": "string", "maxLength": 64 },
+        "coalescerMfg": { "type": "string", "maxLength": 120 },
+        "coalescerInstall": { "type": "string", "maxLength": 64 },
+        "separatorMfg": { "type": "string", "maxLength": 120 },
+        "separatorInstall": { "type": "string", "maxLength": 64 },
+        "openCount": { "type": "string", "maxLength": 32 },
+        "note": { "type": "string", "maxLength": 1000 },
+        "manualStatus": { "type": "string", "enum": ["", "overdue", "soon", "safe", "unknown"] },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "allowedEmails", "name", "createdAt", "updatedAt"]
+    },
+    "HoseRecord": {
+      "title": "HoseRecord",
+      "description": "Fueling hose pressure test and replacement tracking record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "allowedEmails": { "type": "array" },
+        "group": { "type": "string", "maxLength": 120 },
+        "location": { "type": "string", "maxLength": 160 },
+        "position": { "type": "string", "maxLength": 160 },
+        "equipment": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "code": { "type": "string", "maxLength": 160 },
+        "brand": { "type": "string", "maxLength": 120 },
+        "mfgDate": { "type": "string", "maxLength": 64 },
+        "type": { "type": "string", "maxLength": 120 },
+        "quantity": { "type": "string", "maxLength": 32 },
+        "installDate": { "type": "string", "maxLength": 64 },
+        "installedQty": { "type": "string", "maxLength": 32 },
+        "plannedReplace": { "type": "string", "maxLength": 64 },
+        "stock": { "type": "string", "maxLength": 32 },
+        "replaceCycle": { "type": "string", "maxLength": 64 },
+        "lastPressure": { "type": "string", "maxLength": 64 },
+        "nextPressure": { "type": "string", "maxLength": 64 },
+        "pressureCycle": { "type": "string", "maxLength": 64 },
+        "note": { "type": "string", "maxLength": 1000 },
+        "manualStatus": { "type": "string", "enum": ["", "overdue", "soon", "safe", "unknown"] },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "allowedEmails", "equipment", "createdAt", "updatedAt"]
+    },
+    "ElectricRecord": {
+      "title": "ElectricRecord",
+      "description": "Electrical and automation maintenance record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "allowedEmails": { "type": "array" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "lastInspect": { "type": "string", "maxLength": 64 },
+        "cycle": { "type": "string", "maxLength": 64 },
+        "nextInspect": { "type": "string", "maxLength": 64 },
+        "note": { "type": "string", "maxLength": 1000 },
+        "manualStatus": { "type": "string", "enum": ["", "overdue", "soon", "safe", "unknown"] },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "allowedEmails", "name", "createdAt", "updatedAt"]
+    },
+    "CustomWorkspace": {
+      "title": "CustomWorkspace",
+      "description": "User-defined maintenance workspace schema.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "allowedEmails": { "type": "array" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "subtitle": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 500 },
+        "columns": { "type": "array" },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "allowedEmails", "name", "columns", "createdAt", "updatedAt"]
+    },
+    "CustomRowRecord": {
+      "title": "CustomRowRecord",
+      "description": "Row inside a user-defined workspace.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "workspaceId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "allowedEmails": { "type": "array" },
+        "values": { "type": "object" },
+        "manualStatus": { "type": "string", "enum": ["", "overdue", "soon", "safe", "unknown"] },
+        "sortOrder": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "workspaceId", "ownerId", "allowedEmails", "values", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/branches/{branchId}": {
+      "schema": { "$ref": "#/entities/BranchWorkspace" },
+      "description": "Root branch metadata and access list"
+    },
+    "/branches/{branchId}/tanks/{recordId}": {
+      "schema": { "$ref": "#/entities/TankRecord" },
+      "description": "Fuel tank maintenance records"
+    },
+    "/branches/{branchId}/filters/{recordId}": {
+      "schema": { "$ref": "#/entities/FilterRecord" },
+      "description": "Filter vessel maintenance records"
+    },
+    "/branches/{branchId}/hoses/{recordId}": {
+      "schema": { "$ref": "#/entities/HoseRecord" },
+      "description": "Hose maintenance records"
+    },
+    "/branches/{branchId}/electrics/{recordId}": {
+      "schema": { "$ref": "#/entities/ElectricRecord" },
+      "description": "Electrical maintenance records"
+    },
+    "/branches/{branchId}/customWorkspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/CustomWorkspace" },
+      "description": "Custom user-defined workspace definitions"
+    },
+    "/branches/{branchId}/customRows/{rowId}": {
+      "schema": { "$ref": "#/entities/CustomRowRecord" },
+      "description": "Rows belonging to custom workspaces"
+    }
+  }
+}

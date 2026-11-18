@@ -1,0 +1,483 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core identity & validation helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email is string;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'pepsimessi997@gmail.com';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isValidManualStatus(data) {
+      return !('manualStatus' in data) || data.manualStatus in ['', 'overdue', 'soon', 'safe', 'unknown'];
+    }
+
+    function isValidOptionalNumber(data, key) {
+      return !(key in data) || data[key] is number;
+    }
+
+    function isValidEmailList(listVal) {
+      return listVal is list && listVal.size() >= 1 && listVal.size() <= 20 && listVal[0] is string;
+    }
+
+    function canReadDoc(docData) {
+      return isVerifiedUser() && (
+        isBootstrappedAdmin() ||
+        docData.ownerId == request.auth.uid ||
+        (request.auth.token.email in docData.allowedEmails)
+      );
+    }
+
+    function isBranchMember(branchId) {
+      return exists(/databases/$(database)/documents/branches/$(branchId)) && (
+        isBootstrappedAdmin() ||
+        get(/databases/$(database)/documents/branches/$(branchId)).data.ownerId == request.auth.uid ||
+        (request.auth.token.email in get(/databases/$(database)/documents/branches/$(branchId)).data.allowedEmails)
+      );
+    }
+
+    function isValidBranch(data) {
+      return data.keys().hasAll(['name', 'ownerId', 'allowedEmails', 'seeded', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'ownerId', 'allowedEmails', 'seeded', 'createdAt', 'updatedAt'])
+        && isValidString(data.name, 1, 120)
+        && isValidId(data.ownerId)
+        && isValidEmailList(data.allowedEmails)
+        && data.seeded is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTank(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'allowedEmails', 'position', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'allowedEmails', 'stt', 'position',
+          'lastInspect', 'lastClean', 'inspectCycle', 'cleanCycle',
+          'nextInspect', 'nextClean', 'note', 'manualStatus',
+          'sortOrder', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && isValidEmailList(data.allowedEmails)
+        && isValidOptionalString(data, 'stt', 32)
+        && isValidString(data.position, 1, 200)
+        && isValidOptionalString(data, 'lastInspect', 64)
+        && isValidOptionalString(data, 'lastClean', 64)
+        && isValidOptionalString(data, 'inspectCycle', 64)
+        && isValidOptionalString(data, 'cleanCycle', 64)
+        && isValidOptionalString(data, 'nextInspect', 64)
+        && isValidOptionalString(data, 'nextClean', 64)
+        && isValidOptionalString(data, 'note', 1000)
+        && isValidManualStatus(data)
+        && isValidOptionalNumber(data, 'sortOrder')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFilter(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'allowedEmails', 'name', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'allowedEmails', 'name', 'model',
+          'lastInspect', 'nextInspect', 'lastReplace', 'nextReplace',
+          'coalescerMfg', 'coalescerInstall', 'separatorMfg', 'separatorInstall',
+          'openCount', 'note', 'manualStatus', 'sortOrder', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && isValidEmailList(data.allowedEmails)
+        && isValidString(data.name, 1, 300)
+        && isValidOptionalString(data, 'model', 120)
+        && isValidOptionalString(data, 'lastInspect', 64)
+        && isValidOptionalString(data, 'nextInspect', 64)
+        && isValidOptionalString(data, 'lastReplace', 64)
+        && isValidOptionalString(data, 'nextReplace', 64)
+        && isValidOptionalString(data, 'coalescerMfg', 120)
+        && isValidOptionalString(data, 'coalescerInstall', 64)
+        && isValidOptionalString(data, 'separatorMfg', 120)
+        && isValidOptionalString(data, 'separatorInstall', 64)
+        && isValidOptionalString(data, 'openCount', 32)
+        && isValidOptionalString(data, 'note', 1000)
+        && isValidManualStatus(data)
+        && isValidOptionalNumber(data, 'sortOrder')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidHose(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'allowedEmails', 'equipment', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'allowedEmails', 'group', 'location', 'position',
+          'equipment', 'code', 'brand', 'mfgDate', 'type', 'quantity',
+          'installDate', 'installedQty', 'plannedReplace', 'stock',
+          'replaceCycle', 'lastPressure', 'nextPressure', 'pressureCycle',
+          'note', 'manualStatus', 'sortOrder', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && isValidEmailList(data.allowedEmails)
+        && isValidOptionalString(data, 'group', 120)
+        && isValidOptionalString(data, 'location', 160)
+        && isValidOptionalString(data, 'position', 160)
+        && isValidString(data.equipment, 1, 300)
+        && isValidOptionalString(data, 'code', 160)
+        && isValidOptionalString(data, 'brand', 120)
+        && isValidOptionalString(data, 'mfgDate', 64)
+        && isValidOptionalString(data, 'type', 120)
+        && isValidOptionalString(data, 'quantity', 32)
+        && isValidOptionalString(data, 'installDate', 64)
+        && isValidOptionalString(data, 'installedQty', 32)
+        && isValidOptionalString(data, 'plannedReplace', 64)
+        && isValidOptionalString(data, 'stock', 32)
+        && isValidOptionalString(data, 'replaceCycle', 64)
+        && isValidOptionalString(data, 'lastPressure', 64)
+        && isValidOptionalString(data, 'nextPressure', 64)
+        && isValidOptionalString(data, 'pressureCycle', 64)
+        && isValidOptionalString(data, 'note', 1000)
+        && isValidManualStatus(data)
+        && isValidOptionalNumber(data, 'sortOrder')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidElectric(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'allowedEmails', 'name', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'allowedEmails', 'name', 'lastInspect',
+          'cycle', 'nextInspect', 'note', 'manualStatus',
+          'sortOrder', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && isValidEmailList(data.allowedEmails)
+        && isValidString(data.name, 1, 300)
+        && isValidOptionalString(data, 'lastInspect', 64)
+        && isValidOptionalString(data, 'cycle', 64)
+        && isValidOptionalString(data, 'nextInspect', 64)
+        && isValidOptionalString(data, 'note', 1000)
+        && isValidManualStatus(data)
+        && isValidOptionalNumber(data, 'sortOrder')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCustomWorkspace(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'allowedEmails', 'name', 'columns', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'allowedEmails', 'name', 'subtitle',
+          'description', 'columns', 'sortOrder', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && isValidEmailList(data.allowedEmails)
+        && isValidString(data.name, 1, 120)
+        && isValidOptionalString(data, 'subtitle', 120)
+        && isValidOptionalString(data, 'description', 500)
+        && data.columns is list && data.columns.size() >= 1 && data.columns.size() <= 30 && data.columns[0] is map
+        && isValidOptionalNumber(data, 'sortOrder')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCustomRow(data) {
+      return data.keys().hasAll(['id', 'workspaceId', 'ownerId', 'allowedEmails', 'values', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'workspaceId', 'ownerId', 'allowedEmails', 'values',
+          'manualStatus', 'sortOrder', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.workspaceId)
+        && isValidId(data.ownerId)
+        && isValidEmailList(data.allowedEmails)
+        && data.values is map && data.values.size() <= 40
+        && isValidManualStatus(data)
+        && isValidOptionalNumber(data, 'sortOrder')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /branches/{branchId} {
+      allow get: if isVerifiedUser() && isValidId(branchId) && (
+        resource == null
+          ? (isBootstrappedAdmin() || branchId == ('u_' + request.auth.uid))
+          : canReadDoc(existing())
+      );
+      allow list: if isVerifiedUser() && canReadDoc(existing());
+      allow create: if isVerifiedUser()
+        && isValidId(branchId)
+        && isValidBranch(incoming())
+        && (
+          (branchId == 'cam-ranh' && isBootstrappedAdmin()) ||
+          (branchId == ('u_' + request.auth.uid) && incoming().ownerId == request.auth.uid)
+        )
+        && (request.auth.token.email in incoming().allowedEmails)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(branchId)
+        && isValidBranch(incoming())
+        && canReadDoc(existing())
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'allowedEmails', 'seeded', 'updatedAt'])
+        && (
+          !incoming().diff(existing()).affectedKeys().hasAny(['allowedEmails']) ||
+          existing().ownerId == request.auth.uid ||
+          isBootstrappedAdmin()
+        );
+      allow delete: if isVerifiedUser()
+        && isValidId(branchId)
+        && (existing().ownerId == request.auth.uid || isBootstrappedAdmin());
+
+      match /tanks/{recordId} {
+        allow get: if isVerifiedUser() && isValidId(branchId) && isValidId(recordId) && (
+          resource == null ? isBranchMember(branchId) : canReadDoc(existing())
+        );
+        allow list: if isVerifiedUser() && canReadDoc(existing());
+        allow create: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && isValidTank(incoming())
+          && incoming().id == recordId
+          && (incoming().ownerId == request.auth.uid || isBootstrappedAdmin())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && isBranchMember(branchId);
+        allow update: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && isValidTank(incoming())
+          && canReadDoc(existing())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'allowedEmails', 'stt', 'position', 'lastInspect', 'lastClean',
+            'inspectCycle', 'cleanCycle', 'nextInspect', 'nextClean',
+            'note', 'manualStatus', 'sortOrder', 'updatedAt'
+          ])
+          && isBranchMember(branchId);
+        allow delete: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && canReadDoc(existing())
+          && isBranchMember(branchId);
+      }
+
+      match /filters/{recordId} {
+        allow get: if isVerifiedUser() && isValidId(branchId) && isValidId(recordId) && (
+          resource == null ? isBranchMember(branchId) : canReadDoc(existing())
+        );
+        allow list: if isVerifiedUser() && canReadDoc(existing());
+        allow create: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && isValidFilter(incoming())
+          && incoming().id == recordId
+          && (incoming().ownerId == request.auth.uid || isBootstrappedAdmin())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && isBranchMember(branchId);
+        allow update: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && isValidFilter(incoming())
+          && canReadDoc(existing())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'allowedEmails', 'name', 'model', 'lastInspect', 'nextInspect',
+            'lastReplace', 'nextReplace', 'coalescerMfg', 'coalescerInstall',
+            'separatorMfg', 'separatorInstall', 'openCount', 'note',
+            'manualStatus', 'sortOrder', 'updatedAt'
+          ])
+          && isBranchMember(branchId);
+        allow delete: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && canReadDoc(existing())
+          && isBranchMember(branchId);
+      }
+
+      match /hoses/{recordId} {
+        allow get: if isVerifiedUser() && isValidId(branchId) && isValidId(recordId) && (
+          resource == null ? isBranchMember(branchId) : canReadDoc(existing())
+        );
+        allow list: if isVerifiedUser() && canReadDoc(existing());
+        allow create: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && isValidHose(incoming())
+          && incoming().id == recordId
+          && (incoming().ownerId == request.auth.uid || isBootstrappedAdmin())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && isBranchMember(branchId);
+        allow update: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && isValidHose(incoming())
+          && canReadDoc(existing())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'allowedEmails', 'group', 'location', 'position', 'equipment',
+            'code', 'brand', 'mfgDate', 'type', 'quantity', 'installDate',
+            'installedQty', 'plannedReplace', 'stock', 'replaceCycle',
+            'lastPressure', 'nextPressure', 'pressureCycle', 'note',
+            'manualStatus', 'sortOrder', 'updatedAt'
+          ])
+          && isBranchMember(branchId);
+        allow delete: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && canReadDoc(existing())
+          && isBranchMember(branchId);
+      }
+
+      match /electrics/{recordId} {
+        allow get: if isVerifiedUser() && isValidId(branchId) && isValidId(recordId) && (
+          resource == null ? isBranchMember(branchId) : canReadDoc(existing())
+        );
+        allow list: if isVerifiedUser() && canReadDoc(existing());
+        allow create: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && isValidElectric(incoming())
+          && incoming().id == recordId
+          && (incoming().ownerId == request.auth.uid || isBootstrappedAdmin())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && isBranchMember(branchId);
+        allow update: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && isValidElectric(incoming())
+          && canReadDoc(existing())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'allowedEmails', 'name', 'lastInspect', 'cycle',
+            'nextInspect', 'note', 'manualStatus', 'sortOrder', 'updatedAt'
+          ])
+          && isBranchMember(branchId);
+        allow delete: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(recordId)
+          && canReadDoc(existing())
+          && isBranchMember(branchId);
+      }
+
+      match /customWorkspaces/{workspaceId} {
+        allow get: if isVerifiedUser() && isValidId(branchId) && isValidId(workspaceId) && (
+          resource == null ? isBranchMember(branchId) : canReadDoc(existing())
+        );
+        allow list: if isVerifiedUser() && canReadDoc(existing());
+        allow create: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(workspaceId)
+          && isValidCustomWorkspace(incoming())
+          && incoming().id == workspaceId
+          && (incoming().ownerId == request.auth.uid || isBootstrappedAdmin())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && isBranchMember(branchId);
+        allow update: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(workspaceId)
+          && isValidCustomWorkspace(incoming())
+          && canReadDoc(existing())
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'allowedEmails', 'name', 'subtitle', 'description',
+            'columns', 'sortOrder', 'updatedAt'
+          ])
+          && isBranchMember(branchId);
+        allow delete: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(workspaceId)
+          && canReadDoc(existing())
+          && isBranchMember(branchId);
+      }
+
+      match /customRows/{rowId} {
+        allow get: if isVerifiedUser() && isValidId(branchId) && isValidId(rowId) && (
+          resource == null ? isBranchMember(branchId) : canReadDoc(existing())
+        );
+        allow list: if isVerifiedUser() && canReadDoc(existing());
+        allow create: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(rowId)
+          && isValidCustomRow(incoming())
+          && incoming().id == rowId
+          && (incoming().ownerId == request.auth.uid || isBootstrappedAdmin())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && isBranchMember(branchId)
+          && exists(/databases/$(database)/documents/branches/$(branchId)/customWorkspaces/$(incoming().workspaceId));
+        allow update: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(rowId)
+          && isValidCustomRow(incoming())
+          && canReadDoc(existing())
+          && incoming().id == existing().id
+          && incoming().workspaceId == existing().workspaceId
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'allowedEmails', 'values', 'manualStatus', 'sortOrder', 'updatedAt'
+          ])
+          && isBranchMember(branchId);
+        allow delete: if isVerifiedUser()
+          && isValidId(branchId)
+          && isValidId(rowId)
+          && canReadDoc(existing())
+          && isBranchMember(branchId);
+      }
+    }
+  }
+}

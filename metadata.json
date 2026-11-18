@@ -1,0 +1,8 @@
+{
+  "name": "PA Technical Maintenance",
+  "description": "Hệ thống quản lý kiểm tra, bảo dưỡng và theo dõi hồ sơ kỹ thuật kho nhiên liệu bay Petrolimex Aviation Chi nhánh Cam Ranh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
